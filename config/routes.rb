@@ -8,6 +8,8 @@ Rails.application.routes.draw do
     end
   end
 
+  mount Resque::Server.new, :at => "/resque"
+
   match "*path", to: "errors#routing", via: :all
 
   # The priority is based upon order of creation: first created -> highest priority.

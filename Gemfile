@@ -10,6 +10,8 @@ gem 'unicorn'
 
 gem 'sqliterate'
 
+gem 'resque'
+
 group :production do
   # Heroku platform
   gem 'rails_12factor'

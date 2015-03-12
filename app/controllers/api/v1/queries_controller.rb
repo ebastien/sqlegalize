@@ -7,7 +7,12 @@ class Api::V1::QueriesController < ApplicationController
     ast = SQLiterate::QueryParser.new.parse sql
     return invalid_params unless ast
 
-    id = SecureRandom.hex(16)
+    token = SecureRandom.hex(16)
+    seq = Resque.redis.incr('sql:seq')
+    id = [token, seq].join '_'
+
+    Resque.enqueue(Query, id, sql)
+
     href = api_v1_query_url(id)
     rep = {
       queries: {
@@ -22,6 +27,23 @@ class Api::V1::QueriesController < ApplicationController
   end
 
   def show
-    render_api json: {}, status: 204
+    id = params[:id]
+    offset = [params[:offset].to_i, 0].max
+    limit = [[params[:limit].to_i, 1].max, 10000].min
+    query_id = "sql:query:#{id}"
+
+    rows = Resque.redis.lrange(query_id, offset, offset + limit - 1)
+
+    href = api_v1_query_url(id)
+    rep = {
+      queries: {
+        id: id,
+        href: href,
+        offset: offset,
+        limit: limit,
+        rows: rows
+      }
+    }
+    render_api json: rep, status: 200
   end
 end
